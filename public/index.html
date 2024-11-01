@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMCC Jobs Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        button.secondary {
+            background-color: #42b72a;
+        }
+        .message {
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="formTitle">BMCC Student Jobs Portal</h2>
+        <form id="authForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required placeholder="yourname@stu.bmcc.cuny.edu">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" id="submitBtn">Login</button>
+            <button type="button" class="secondary" onclick="toggleMode()">Switch to Register</button>
+        </form>
+        <div id="message" class="message" style="display: none;"></div>
+    </div>
+
+    <script>
+        let isLoginMode = true;
+        
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('submitBtn').textContent = isLoginMode ? 'Login' : 'Register';
+            document.querySelector('.secondary').textContent = 
+                isLoginMode ? 'Switch to Register' : 'Switch to Login';
+            document.getElementById('message').style.display = 'none';
+        }
+
+        function showMessage(text, isError = false) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.style.display = 'block';
+            msgDiv.className = `message ${isError ? 'error' : 'success'}`;
+        }
+
+        // Test the server connection on page load
+        fetch('http://localhost:8080/')
+            .then(response => {
+                if (!response.ok) throw new Error('Server not responding');
+                console.log('Server is running');
+            })
+            .catch(error => {
+                showMessage('Server not running. Please start the server.', true);
+            });
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email.endsWith('@stu.bmcc.cuny.edu')) {
+                showMessage('Please use your BMCC student email (@stu.bmcc.cuny.edu)', true);
+                return;
+            }
+
+            const endpoint = isLoginMode ? '/login' : '/register';
+
+            try {
+                showMessage('Connecting to server...', false);
+
+                const response = await fetch(`http://localhost:8080${endpoint}`, {
+                    method: 'POST',
+                    mode: 'no-cors', // Try with no-cors mode
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const data = await response.json();
+                    showMessage(data.message, !response.ok);
+                    
+                    if (response.ok && isLoginMode) {
+                        setTimeout(() => {
+                            alert('Login successful! Jobs page coming soon.');
+                        }, 1000);
+                    }
+                } else {
+                    showMessage(isLoginMode ? 'Login processed' : 'Registration processed', false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`Server error: ${error.message}. Is the server running?`, true);
+            }
+        });
+    </script>
+</body>
+</html>
